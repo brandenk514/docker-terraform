@@ -22,6 +22,11 @@ resource "docker_network" "flix_net" {
   driver = "bridge"
 }
 
+resource "docker_network" "tovpn_net" {
+  name   = "tovpn_net"
+  driver = "bridge"
+}
+
 resource "docker_volume" "media_volume" {
   name   = "media_volume"
   driver = "local"
@@ -39,16 +44,6 @@ resource "docker_volume" "transmission_dl_vol" {
     type = "nfs4"
     o = "addr=192.168.105.15,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
     device = ":/mnt/t1-sas-ssd/transmission-repo"
-  }
-}
-
-resource "docker_volume" "transmission_conf_vol" {
-  name = "transmission_conf_vol"
-  driver = "local"
-  driver_opts = {
-    type = "nfs4"
-    o = "addr=192.168.105.15,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
-    device = ":/mnt/t1-sas-ssd/transmission-conf"
   }
 }
 
@@ -279,6 +274,10 @@ resource "docker_container" "transmission_openvpn" {
   name  = "tovpn"
   restart = "unless-stopped"
   privileged = true
+  networks_advanced {
+    name    = docker_network.tovpn_net.name
+    aliases = ["tovpn"]
+  }
   ports {
     internal = 9091
     external = 9091
@@ -296,7 +295,7 @@ resource "docker_container" "transmission_openvpn" {
     container_path = "/data"
   }
   volumes {
-    volume_name    = docker_volume.transmission_conf_vol.name
+    volume_name    = "transmission_conf_vol"
     container_path = "/config"
   }
 }
@@ -309,6 +308,10 @@ resource "docker_container" "flaresolverr" {
   image = docker_image.flaresolverr.image_id
   name  = "flaresolverr"
   restart = "unless-stopped"
+  networks_advanced {
+    name    = docker_network.tovpn_net.name
+    aliases = ["flaresolverr"]
+  }
   ports {
     internal = 8191
     external = 8191
