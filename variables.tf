@@ -4,8 +4,9 @@ variable "docker_host" {
 }
 
 variable "ssh_key_path" {
-  description = "The URL of the remote Docker host"
+  description = "File path to the SSH private key"
   type        = string
+  sensitive   = true
 }
 
 variable "semaphore_admin" {
@@ -30,6 +31,11 @@ variable "semaphore_admin_email" {
 }
 
 variable "media_server" {
-  description = "The URL of the remote Docker host"
+  description = "DNS of the media server"
+  type        = string
+}
+
+variable "media_server_mount" {
+  description = "NFS mount on the media server"
   type        = string
 }

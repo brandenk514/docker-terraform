@@ -22,6 +22,16 @@ resource "docker_network" "flix_net" {
   driver = "bridge"
 }
 
+resource "docker_volume" "media_volume" {
+  name   = "media_volume"
+  driver = "local"
+  driver_opts = {
+    type   = "nfs"
+    o      = "addr=${var.media_server},rw"
+    device = "${var.media_server_mount}"
+  }
+}
+
 resource "docker_image" "portainer" {
   name = "portainer/portainer-ce:2.21.5"
 }
@@ -78,8 +88,8 @@ resource "docker_image" "semaphore_ui" {
 }
 
 resource "docker_container" "semaphore_ui" {
-  image = docker_image.semaphore_ui.image_id
-  name  = "semaphore-ui"
+  image   = docker_image.semaphore_ui.image_id
+  name    = "semaphore-ui"
   restart = "unless-stopped"
   ports {
     internal = 3000
@@ -153,7 +163,7 @@ resource "docker_container" "tdarr" {
     container_path = "/app/logs"
   }
   volumes {
-    host_path      = "/media"
+    volume_name    = docker_volume.media_volume.name
     container_path = "/media"
   }
   volumes {
@@ -194,7 +204,7 @@ resource "docker_container" "tdarr_node_mov" {
     container_path = "/app/logs"
   }
   volumes {
-    host_path      = "/media"
+    volume_name    = docker_volume.media_volume.name
     container_path = "/media"
   }
   volumes {
@@ -231,7 +241,7 @@ resource "docker_container" "tdarr_node_tv" {
     container_path = "/app/logs"
   }
   volumes {
-    host_path      = "/media"
+    volume_name    = docker_volume.media_volume.name
     container_path = "/media"
   }
   volumes {
