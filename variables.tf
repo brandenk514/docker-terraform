@@ -39,3 +39,20 @@ variable "media_server_mount" {
   description = "NFS mount on the media server"
   type        = string
 }
+
+variable "openvpn_username" {
+  description = "OpenVPN username"
+  type        = string
+  sensitive   = true
+}
+
+variable "openvpn_password" {
+  description = "OpenVPN password"
+  type        = string
+  sensitive   = true
+}
+
+variable "timezone" {
+  description = "Region/City timezone"
+  type        = string
+}

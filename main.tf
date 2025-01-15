@@ -32,6 +32,26 @@ resource "docker_volume" "media_volume" {
   }
 }
 
+resource "docker_volume" "transmission_dl_vol" {
+  name = "transmission_dl_vol"
+  driver = "local"
+  driver_opts = {
+    type = "nfs4"
+    o = "addr=192.168.105.15,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
+    device = ":/mnt/t1-sas-ssd/transmission-repo"
+  }
+}
+
+resource "docker_volume" "transmission_conf_vol" {
+  name = "transmission_conf_vol"
+  driver = "local"
+  driver_opts = {
+    type = "nfs4"
+    o = "addr=192.168.105.15,rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
+    device = ":/mnt/t1-sas-ssd/transmission-conf"
+  }
+}
+
 resource "docker_image" "portainer" {
   name = "portainer/portainer-ce:2.21.5"
 }
@@ -138,7 +158,7 @@ resource "docker_container" "tdarr" {
     external = 8266
   }
   env = [
-    "TZ=America/Los_Angeles",
+    "TZ=${var.timezone}",
     "PUID=1000",
     "PGID=1000",
     "UMASK_SET=002",
@@ -185,7 +205,7 @@ resource "docker_container" "tdarr_node_mov" {
     aliases = ["tdarr-node_mov"]
   }
   env = [
-    "TZ=America/Los_Angeles",
+    "TZ=${var.timezone}",
     "PUID=1000",
     "PGID=1000",
     "UMASK_SET=002",
@@ -222,7 +242,7 @@ resource "docker_container" "tdarr_node_tv" {
     aliases = ["tdarr-node_tv"]
   }
   env = [
-    "TZ=America/Los_Angeles",
+    "TZ=${var.timezone}",
     "PUID=1000",
     "PGID=1000",
     "UMASK_SET=002",
@@ -248,4 +268,55 @@ resource "docker_container" "tdarr_node_tv" {
     volume_name    = "node_transcode_cache_tv"
     container_path = "/temp"
   }
+}
+
+resource "docker_image" "transmission_openvpn" {
+  name = "haugene/transmission-openvpn:5.3.1"
+}
+
+resource "docker_container" "transmission_openvpn" {
+  image = docker_image.transmission_openvpn.image_id
+  name  = "tovpn"
+  restart = "unless-stopped"
+  privileged = true
+  ports {
+    internal = 9091
+    external = 9091
+  }
+  env = [
+    "OPENVPN_PROVIDER=NORDVPN",
+    "OPENVPN_CONFIG=",
+    "OPENVPN_USERNAME=${var.openvpn_username}",
+    "OPENVPN_PASSWORD=${var.openvpn_password}",
+    "LOCAL_NETWORK=192.168.100.0/24, 192.168.105.0/24",
+    "TRANSMISSION_WEB_HOME=/opt/transmission-ui/flood-for-transmission"
+  ]
+  volumes {
+    volume_name    = docker_volume.transmission_dl_vol.name
+    container_path = "/data"
+  }
+  volumes {
+    volume_name    = docker_volume.transmission_conf_vol.name
+    container_path = "/config"
+  }
+}
+
+resource "docker_image" "flaresolverr" {
+  name = "flaresolverr/flaresolverr:latest"
+}
+
+resource "docker_container" "flaresolverr" {
+  image = docker_image.flaresolverr.image_id
+  name  = "flaresolverr"
+  restart = "unless-stopped"
+  ports {
+    internal = 8191
+    external = 8191
+  }
+  env = [
+    "LOG_LEVEL=info",
+    "LOG_HTML=false",
+    "CAPTCHA_SOLVER=none",
+    "TZ=${var.timezone}",
+  ]
 }
