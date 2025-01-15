@@ -35,11 +35,6 @@ variable "media_server" {
   type        = string
 }
 
-variable "media_server_mount" {
-  description = "NFS mount on the media server"
-  type        = string
-}
-
 variable "openvpn_username" {
   description = "OpenVPN username"
   type        = string
