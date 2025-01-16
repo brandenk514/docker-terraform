@@ -33,7 +33,7 @@ resource "docker_volume" "transmission_dl_vol" {
   driver_opts = {
     type = "nfs4"
     o = "addr=${var.media_server},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
-    device = ":/mnt/t1-sas-ssd/transmission-repo"
+    device = var.transmission_mnt
   }
 }
 
@@ -43,7 +43,7 @@ resource "docker_volume" "media_library" {
   driver_opts = {
     type = "nfs4"
     o = "addr=${var.media_server},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
-    device = ":/mnt/t1-sas-ssd/media-library"
+    device = var.media_library_mnt
   }
 }
 

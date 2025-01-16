@@ -35,6 +35,16 @@ variable "media_server" {
   type        = string
 }
 
+variable "transmission_mnt" {
+  description = "Path to the Transmission download volume"
+  type        = string
+}
+
+variable "media_library_mnt" {
+  description = "Path to the media library volume"
+  type        = string
+}
+
 variable "openvpn_username" {
   description = "OpenVPN username"
   type        = string
