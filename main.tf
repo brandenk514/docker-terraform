@@ -47,7 +47,6 @@ resource "docker_volume" "media_library" {
   }
 }
 
-
 resource "docker_image" "portainer" {
   name = "portainer/portainer-ce:2.21.5"
 }
@@ -55,6 +54,7 @@ resource "docker_image" "portainer" {
 resource "docker_container" "portainer" {
   image = docker_image.portainer.image_id
   name  = "portainer"
+  restart = "unless-stopped"
   ports {
     internal = 8000
     external = 8000
@@ -89,6 +89,10 @@ resource "docker_container" "uptime_kuma" {
   image   = docker_image.uptime_kuma.image_id
   name    = "uptime-kuma"
   restart = "unless-stopped"
+  networks_advanced {
+    name    = docker_network.mgmt_net.name
+    aliases = ["uptime-kuma"]
+  }
   ports {
     internal = 3001
     external = 3001
@@ -107,6 +111,10 @@ resource "docker_container" "semaphore_ui" {
   image   = docker_image.semaphore_ui.image_id
   name    = "semaphore-ui"
   restart = "unless-stopped"
+  networks_advanced {
+    name    = docker_network.mgmt_net.name
+    aliases = ["semaphore-ui"]
+  }
   ports {
     internal = 3000
     external = 30080
@@ -136,14 +144,14 @@ resource "docker_image" "tdarr" {
   name = "ghcr.io/haveagitgat/tdarr:latest"
 }
 
-resource "docker_container" "tdarr" {
+resource "docker_container" "tdarr_server" {
   image        = docker_image.tdarr.image_id
-  name         = "tdarr"
+  name         = "tdarr_server"
   restart      = "unless-stopped"
   network_mode = "bridge"
   networks_advanced {
     name    = docker_network.flix_net.name
-    aliases = ["tdarr"]
+    aliases = ["tdarr_server"]
   }
   ports {
     internal = 8265
@@ -205,18 +213,18 @@ resource "docker_container" "tdarr_node_mov" {
     "PUID=1000",
     "PGID=1000",
     "UMASK_SET=002",
-    "nodeName=dstack-tdarr-node_mov",
+    "nodeName=tdarr-node_mov",
     "serverIP=${docker_container.tdarr.network_data.0.ip_address}",
     "serverPort=8266",
     "inContainer=true",
     "ffmpegVersion=6",
   ]
   volumes {
-    volume_name    = "tdarr_node_configs"
+    volume_name    = "tdarr_node_mov_configs"
     container_path = "/app/configs"
   }
   volumes {
-    volume_name    = "tdarr_node_logs"
+    volume_name    = "tdarr_node_mov_logs"
     container_path = "/app/logs"
   }
   volumes {
@@ -224,36 +232,36 @@ resource "docker_container" "tdarr_node_mov" {
     container_path = "/media"
   }
   volumes {
-    volume_name    = "node_transcode_cache"
+    volume_name    = "tdarr_node_mov_cache"
     container_path = "/temp"
   }
 }
 
 resource "docker_container" "tdarr_node_tv" {
   image   = docker_image.tdarr_node.image_id
-  name    = "tdarr-node_tv"
+  name    = "tdarr_node_tv"
   restart = "unless-stopped"
   networks_advanced {
     name    = docker_network.flix_net.name
-    aliases = ["tdarr-node_tv"]
+    aliases = ["tdarr_node_tv"]
   }
   env = [
     "TZ=${var.timezone}",
     "PUID=1000",
     "PGID=1000",
     "UMASK_SET=002",
-    "nodeName=dstack-tdarr-node_tv",
+    "nodeName=tdarr-node_tv",
     "serverIP=${docker_container.tdarr.network_data.0.ip_address}",
     "serverPort=8266",
     "inContainer=true",
     "ffmpegVersion=6",
   ]
   volumes {
-    volume_name    = "tdarr_node_configs_tv"
+    volume_name    = "tdarr_node_tv_configs"
     container_path = "/app/configs"
   }
   volumes {
-    volume_name    = "tdarr_node_logs_tv"
+    volume_name    = "tdarr_node_tv_logs"
     container_path = "/app/logs"
   }
   volumes {
@@ -261,7 +269,7 @@ resource "docker_container" "tdarr_node_tv" {
     container_path = "/media"
   }
   volumes {
-    volume_name    = "node_transcode_cache_tv"
+    volume_name    = "tdarr_node_tv_cache"
     container_path = "/temp"
   }
 }
@@ -277,7 +285,7 @@ resource "docker_container" "transmission_openvpn" {
   capabilities {
     add = ["NET_ADMIN"]
   }
-  #privileged = true
+  privileged = true
   networks_advanced {
     name    = docker_network.tovpn_net.name
     aliases = ["tovpn"]
@@ -292,7 +300,7 @@ resource "docker_container" "transmission_openvpn" {
     "OPENVPN_USERNAME=${var.openvpn_username}",
     "OPENVPN_PASSWORD=${var.openvpn_password}",
     "LOCAL_NETWORK=192.168.100.0/24, 192.168.105.0/24",
-    "TRANSMISSION_WEB_HOME=/opt/transmission-ui/flood-for-transmission"
+    #"TRANSMISSION_WEB_HOME=/opt/transmission-ui/flood-for-transmission"
   ]
   volumes {
     volume_name    = docker_volume.transmission_dl_vol.name
