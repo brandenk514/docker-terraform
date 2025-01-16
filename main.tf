@@ -300,7 +300,7 @@ resource "docker_container" "transmission_openvpn" {
     "OPENVPN_USERNAME=${var.openvpn_username}",
     "OPENVPN_PASSWORD=${var.openvpn_password}",
     "LOCAL_NETWORK=192.168.100.0/24, 192.168.105.0/24",
-    #"TRANSMISSION_WEB_HOME=/opt/transmission-ui/flood-for-transmission"
+    "TRANSMISSION_WEB_HOME=/opt/transmission-ui/flood-for-transmission"
   ]
   volumes {
     volume_name    = docker_volume.transmission_dl_vol.name
