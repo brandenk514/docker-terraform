@@ -27,25 +27,26 @@ resource "docker_network" "tovpn_net" {
   driver = "bridge"
 }
 
-resource "docker_volume" "media_volume" {
-  name   = "media_volume"
-  driver = "local"
-  driver_opts = {
-    type   = "nfs"
-    o      = "addr=${var.media_server},rw"
-    device = ":/mnt/t1-sas-ssd/media-library"
-  }
-}
-
 resource "docker_volume" "transmission_dl_vol" {
   name = "transmission_dl_vol"
   driver = "local"
   driver_opts = {
     type = "nfs4"
-    o = "addr=${var.media_server},rw"
+    o = "addr=${var.media_server},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
     device = ":/mnt/t1-sas-ssd/transmission-repo"
   }
 }
+
+resource "docker_volume" "media_library" {
+  name = "media-library"
+  driver = "local"
+  driver_opts = {
+    type = "nfs4"
+    o = "addr=${var.media_server},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
+    device = ":/mnt/t1-sas-ssd/media-library"
+  }
+}
+
 
 resource "docker_image" "portainer" {
   name = "portainer/portainer-ce:2.21.5"
@@ -178,7 +179,7 @@ resource "docker_container" "tdarr" {
     container_path = "/app/logs"
   }
   volumes {
-    volume_name    = docker_volume.media_volume.name
+    volume_name    = docker_volume.media_library.name
     container_path = "/media"
   }
   volumes {
@@ -219,7 +220,7 @@ resource "docker_container" "tdarr_node_mov" {
     container_path = "/app/logs"
   }
   volumes {
-    volume_name    = docker_volume.media_volume.name
+    volume_name    = docker_volume.media_library.name
     container_path = "/media"
   }
   volumes {
@@ -256,7 +257,7 @@ resource "docker_container" "tdarr_node_tv" {
     container_path = "/app/logs"
   }
   volumes {
-    volume_name    = docker_volume.media_volume.name
+    volume_name    = docker_volume.media_library.name
     container_path = "/media"
   }
   volumes {
@@ -266,14 +267,17 @@ resource "docker_container" "tdarr_node_tv" {
 }
 
 resource "docker_image" "transmission_openvpn" {
-  name = "haugene/transmission-openvpn:5.3.1"
+  name = "haugene/transmission-openvpn:master"
 }
 
 resource "docker_container" "transmission_openvpn" {
-  image = docker_image.transmission_openvpn.image_id
-  name  = "tovpn"
-  restart = "unless-stopped"
-  privileged = true
+  image      = docker_image.transmission_openvpn.image_id
+  name       = "tovpn"
+  restart    = "unless-stopped"
+  capabilities {
+    add = ["NET_ADMIN"]
+  }
+  #privileged = true
   networks_advanced {
     name    = docker_network.tovpn_net.name
     aliases = ["tovpn"]
@@ -305,8 +309,8 @@ resource "docker_image" "flaresolverr" {
 }
 
 resource "docker_container" "flaresolverr" {
-  image = docker_image.flaresolverr.image_id
-  name  = "flaresolverr"
+  image   = docker_image.flaresolverr.image_id
+  name    = "flaresolverr"
   restart = "unless-stopped"
   networks_advanced {
     name    = docker_network.tovpn_net.name
