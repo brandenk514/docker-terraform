@@ -12,6 +12,8 @@ provider "docker" {
   ssh_opts = ["-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", "-i", var.ssh_key_path]
 }
 
+### NETWORKS ###
+
 resource "docker_network" "mgmt_net" {
   name   = "mgmt_net"
   driver = "bridge"
@@ -27,33 +29,70 @@ resource "docker_network" "tovpn_net" {
   driver = "bridge"
 }
 
+### VOLUMES ###
+
 resource "docker_volume" "transmission_dl_vol" {
-  name = "transmission_dl_vol"
+  name   = "transmission_dl_vol"
   driver = "local"
   driver_opts = {
-    type = "nfs4"
-    o = "addr=${var.media_server},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
+    type   = "nfs4"
+    o      = "addr=${var.media_server},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
     device = var.transmission_mnt
   }
 }
 
 resource "docker_volume" "media_library" {
-  name = "media-library"
+  name   = "media-library"
   driver = "local"
   driver_opts = {
-    type = "nfs4"
-    o = "addr=${var.media_server},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
+    type   = "nfs4"
+    o      = "addr=${var.media_server},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14"
     device = var.media_library_mnt
   }
 }
 
+### IMAGES ###
+
 resource "docker_image" "portainer" {
-  name = "portainer/portainer-ce:2.21.5"
+  name          = "portainer/portainer-ce:2.21.5"
+  keep_locally  = true
 }
 
+resource "docker_image" "uptime_kuma" {
+  name          = "louislam/uptime-kuma:1.23.16"
+  keep_locally  = true
+}
+
+resource "docker_image" "semaphore_ui" {
+  name          = "semaphoreui/semaphore:v2.11.2"
+  keep_locally  = true
+}
+
+resource "docker_image" "tdarr" {
+  name          = "ghcr.io/haveagitgat/tdarr:latest"
+  keep_locally  = true
+}
+
+resource "docker_image" "tdarr_node" {
+  name          = "ghcr.io/haveagitgat/tdarr_node:latest"
+  keep_locally  = true
+}
+
+resource "docker_image" "transmission_openvpn" {
+  name          = "haugene/transmission-openvpn"
+  keep_locally  = true
+}
+
+resource "docker_image" "flaresolverr" {
+  name          = "flaresolverr/flaresolverr:latest"
+  keep_locally  = true
+}
+
+### CONTAINERS ###
+
 resource "docker_container" "portainer" {
-  image = docker_image.portainer.image_id
-  name  = "portainer"
+  image   = docker_image.portainer.image_id
+  name    = "portainer"
   restart = "unless-stopped"
   ports {
     internal = 8000
@@ -81,10 +120,6 @@ resource "docker_container" "portainer" {
   }
 }
 
-resource "docker_image" "uptime_kuma" {
-  name = "louislam/uptime-kuma:1.23.16"
-}
-
 resource "docker_container" "uptime_kuma" {
   image   = docker_image.uptime_kuma.image_id
   name    = "uptime-kuma"
@@ -101,10 +136,6 @@ resource "docker_container" "uptime_kuma" {
     volume_name    = "uptime_kuma_data"
     container_path = "/app/data"
   }
-}
-
-resource "docker_image" "semaphore_ui" {
-  name = "semaphoreui/semaphore:v2.11.2"
 }
 
 resource "docker_container" "semaphore_ui" {
@@ -138,10 +169,6 @@ resource "docker_container" "semaphore_ui" {
     volume_name    = "semaphore_tmp"
     container_path = "/tmp/semaphore"
   }
-}
-
-resource "docker_image" "tdarr" {
-  name = "ghcr.io/haveagitgat/tdarr:latest"
 }
 
 resource "docker_container" "tdarr_server" {
@@ -191,13 +218,9 @@ resource "docker_container" "tdarr_server" {
     container_path = "/media"
   }
   volumes {
-    volume_name    = "transcode_cache"
+    volume_name    = "tdarr_transcode_cache"
     container_path = "/temp"
   }
-}
-
-resource "docker_image" "tdarr_node" {
-  name = "ghcr.io/haveagitgat/tdarr_node:latest"
 }
 
 resource "docker_container" "tdarr_node_mov" {
@@ -274,14 +297,10 @@ resource "docker_container" "tdarr_node_tv" {
   }
 }
 
-resource "docker_image" "transmission_openvpn" {
-  name = "haugene/transmission-openvpn:master"
-}
-
 resource "docker_container" "transmission_openvpn" {
-  image      = docker_image.transmission_openvpn.image_id
-  name       = "tovpn"
-  restart    = "unless-stopped"
+  image   = docker_image.transmission_openvpn.image_id
+  name    = "tovpn"
+  restart = "unless-stopped"
   capabilities {
     add = ["NET_ADMIN"]
   }
@@ -310,10 +329,6 @@ resource "docker_container" "transmission_openvpn" {
     volume_name    = "transmission_conf_vol"
     container_path = "/config"
   }
-}
-
-resource "docker_image" "flaresolverr" {
-  name = "flaresolverr/flaresolverr:latest"
 }
 
 resource "docker_container" "flaresolverr" {
